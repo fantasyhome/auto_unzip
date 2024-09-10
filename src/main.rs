@@ -1,10 +1,10 @@
 mod ini_reader;
 
+use crate::ini_reader::*;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use crate::ini_reader::*;
 
 fn main() -> io::Result<()> {
     let IniInfo {
@@ -95,13 +95,9 @@ fn is_compressed_file(path: &Path) -> bool {
         // 过滤掉非 ASCII 字符，只保留 ASCII 字符（删除中文）
         let mut cleaned_ext: String = ext_lossy.chars().filter(|c| c.is_ascii()).collect();
         cleaned_ext = cleaned_ext.to_lowercase();
-        let compress_extension_flag = [
-            "zip","rar","7z","tar","gz","7","zi"
-        ];
-        for flag in compress_extension_flag
-        {
-            if cleaned_ext.eq(flag)
-            {
+        let compress_extension_flag = ["zip", "rar", "7z", "tar", "gz", "7", "zi"];
+        for flag in compress_extension_flag {
+            if cleaned_ext.contains(flag) {
                 return true;
             }
         }
@@ -189,8 +185,12 @@ fn extract_compressed_file(
 fn is_video_file(path: &Path) -> bool {
     if let Some(ext) = path.extension() {
         let ext = ext.to_string_lossy().to_lowercase();
-        return ext == "mp4" || ext == "avi" || ext == "mkv" || ext == "mov" || ext == "flv";
-        // 常见的视频文件格式
+        let video_flag = ["mp4", "avi", "mkv", "mov", "flv"];
+        for flag in video_flag {
+            if ext.eq(flag) {
+                return true;
+            }
+        }
     }
     false
 }
