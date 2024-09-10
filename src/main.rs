@@ -48,7 +48,7 @@ fn delete_all_files_in_dir(dir: &str) -> io::Result<()> {
 }
 
 fn clear_output() {
-    let output_dir = r"D:\test\output";
+    let output_dir = r"D:\BaiduNetdiskDownload\output";
 
     // 调用删除函数，并处理返回的错误
     match delete_all_files_in_dir(output_dir) {
@@ -142,7 +142,7 @@ fn extract_compressed_file(
                 if is_video_file(&entry_path) {
                     // 如果是视频文件，移动到输出目录
                     let file_name = entry_path.file_name().unwrap();
-                    let output_path = Path::new(r"D:\test\output").join(file_name);
+                    let output_path = Path::new(r"D:\BaiduNetdiskDownload\output").join(file_name);
                     fs::rename(&entry_path, output_path)?;
                     println!("Extracted video file: {}", entry_path.display());
                 } else if is_compressed_file(&entry_path) {
@@ -163,7 +163,7 @@ fn extract_compressed_file(
                         } else if is_video_file(&path) {
                             // 如果是视频文件，移动到输出目录
                             let file_name = path.file_name().unwrap();
-                            let output_path = Path::new(r"D:\test\output").join(file_name);
+                            let output_path = Path::new(r"D:\BaiduNetdiskDownload\output").join(file_name);
                             fs::rename(&path, output_path)?;
                             println!("Extracted video file: {}", path.display());
                         }
