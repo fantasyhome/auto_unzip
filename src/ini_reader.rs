@@ -24,6 +24,7 @@ pub fn test_ini() {
 }
 
 pub struct IniInfo {
+    pub bz_dir: String,
     pub input_dir: String,
     pub output_dir: String,
     pub password: String,
@@ -39,6 +40,7 @@ pub fn get_ini_info() -> IniInfo {
         println!("无法将 PathBuf 转换为 &str");
     }
     IniInfo {
+        bz_dir: ini.get("common", "bz_dir").expect("bz_dir not found"),
         input_dir: ini.get("common", "input_dir").expect("input_dir not found"),
         output_dir: ini
             .get("common", "output_dir")
