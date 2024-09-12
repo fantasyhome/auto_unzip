@@ -31,7 +31,7 @@ impl ExtractManager {
     pub fn extract_videos_from_compressed_files(&self) {
         match fs::remove_dir_all(&self.output_dir) {
             Ok(_) => println!("All files in {} have been deleted.", &self.output_dir),
-            Err(e) => eprintln!("Failed to delete files: {}", e),
+            Err(_e) => println!("no file in output need to be delete"),
         }
 
         // 创建输出目录，如果不存在
