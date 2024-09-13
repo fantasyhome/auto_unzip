@@ -47,7 +47,7 @@ impl ExtractManager {
     }
 
     fn do_extract(&self, walking_directory: &Path) {
-        self.clean_filename_in_dir(walking_directory);
+        file_helper::clean_filename_in_dir(walking_directory);
 
         let mut last_filename = String::new();
         // 遍历输入目录的文件
@@ -60,13 +60,18 @@ impl ExtractManager {
                 let buffer = &fs::read(&entry_path).expect("failed to read buffer");
                 if infer::is_archive(buffer) {
                     // 避免分卷压缩文件多次解压
-                    let current_filename = file_helper::get_filename_before_dot(&entry_path);
-                    if current_filename == last_filename {
-                        continue;
+                    if let Some((current_filename, _extension)) =
+                        file_helper::split_filename_by_first_dot(&entry_path)
+                    {
+                        if current_filename == last_filename {
+                            continue;
+                        }
+                        last_filename = current_filename;
+                        // 解压缩并递归提取
+                        self.extract_selected_file(&entry_path);
+                    } else {
+                        println!("Invalid file name or no dot found");
                     }
-                    last_filename = current_filename;
-                    // 解压缩并递归提取
-                    self.extract_selected_file(&entry_path);
                 } else if infer::is_video(buffer) {
                     // 如果是视频文件，移动到输出目录
                     let file_name = entry_path.file_name().expect("failed to get file_name");
@@ -77,20 +82,6 @@ impl ExtractManager {
             } else if entry_path.is_dir() {
                 self.do_extract(&entry_path)
             }
-        }
-    }
-
-    fn clean_filename_in_dir(&self, dir: &Path) {
-        if !dir.is_dir() {
-            return;
-        }
-        for entry in fs::read_dir(dir).expect("failed read dir") {
-            let path = entry.expect("failed get entry").path();
-            let path_str = path.to_str().expect("failed to_str");
-            // 过滤掉非 ASCII 字符，只保留 ASCII 字符（删除中文）
-            let cleaned_path_str: String = path_str.chars().filter(|c| c.is_ascii()).collect();
-            let cleaned_path = Path::new(&cleaned_path_str);
-            fs::rename(&path, &cleaned_path).expect("failed to clean path");
         }
     }
 
