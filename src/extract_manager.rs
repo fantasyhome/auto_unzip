@@ -1,6 +1,8 @@
 use crate::ini_reader::*;
 use infer;
 use std::fs;
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 use std::process::Command;
 use tanzhenhui_code_lib::file_helper;
@@ -51,49 +53,84 @@ impl ExtractManager {
 
         let mut last_filename = String::new();
         // 遍历输入目录的文件
-        for entry in fs::read_dir(walking_directory).expect("failed read input_dir") {
-            let entry = entry.expect("failed get entry");
-            let entry_path = entry.path();
-
-            // 如果是文件并且可能是压缩文件，尝试解压
-            if entry_path.is_file() {
-                let buffer = &fs::read(&entry_path).expect("failed to read buffer");
-                if infer::is_archive(buffer) {
-                    // 避免分卷压缩文件多次解压
-                    if let Some((current_filename, _extension)) =
-                        file_helper::split_filename_by_first_dot(&entry_path)
-                    {
-                        if current_filename == last_filename {
+        match fs::read_dir(walking_directory) {
+            Ok(entries) => {
+                for entry in entries {
+                    let entry = match entry {
+                        Ok(e) => e,
+                        Err(e) => {
+                            eprintln!("Failed to get directory entry: {}", e);
                             continue;
                         }
-                        last_filename = current_filename;
-                        // 解压缩并递归提取
-                        self.extract_selected_file(&entry_path);
-                    } else {
-                        println!("Invalid file name or no dot found");
+                    };
+                    let entry_path = entry.path();
+
+                    // 如果是文件并且可能是压缩文件，尝试判断文件类型
+                    if entry_path.is_file() {
+                        let mut file = match File::open(&entry_path) {
+                            Ok(f) => f,
+                            Err(e) => {
+                                eprintln!("Failed to open file: {}", e);
+                                continue;
+                            }
+                        };
+
+                        // 只读取前 16 个字节判断文件类型
+                        let mut buffer = [0u8; 16];
+                        if let Err(e) = file.read_exact(&mut buffer) {
+                            eprintln!("Failed to read file header: {}", e);
+                            continue;
+                        }
+
+                        if infer::is_archive(&buffer) {
+                            // 避免分卷压缩文件多次解压
+                            if let Some((current_filename, _extension)) =
+                                file_helper::split_filename_by_first_dot(&entry_path)
+                            {
+                                if current_filename == last_filename {
+                                    continue;
+                                }
+                                last_filename = current_filename;
+                                // 解压缩并递归提取
+                                self.extract_selected_file(&entry_path);
+                            } else {
+                                println!("Invalid file name or no dot found");
+                            }
+                        } else if infer::is_video(&buffer) {
+                            // 如果是视频文件，移动到输出目录
+                            if let Some(file_name) = entry_path.file_name() {
+                                let output_file_path = Path::new(&self.output_dir).join(file_name);
+                                if let Err(e) = fs::rename(&entry_path, &output_file_path) {
+                                    eprintln!("Failed to move video file: {}", e);
+                                } else {
+                                    println!("Video file moved to: {}", output_file_path.display());
+                                }
+                            } else {
+                                eprintln!("Failed to get file name for video file");
+                            }
+                        }
+                    } else if entry_path.is_dir() {
+                        self.do_extract(&entry_path)
                     }
-                } else if infer::is_video(buffer) {
-                    // 如果是视频文件，移动到输出目录
-                    let file_name = entry_path.file_name().expect("failed to get file_name");
-                    let output_file_path = Path::new(&self.output_dir).join(file_name);
-                    fs::rename(&entry_path, &output_file_path).expect("failed to move video file");
-                    println!("video file moved to: {}", output_file_path.display());
                 }
-            } else if entry_path.is_dir() {
-                self.do_extract(&entry_path)
             }
+            Err(e) => eprintln!("Failed to read input directory: {}", e),
         }
     }
 
+
     fn extract_selected_file(&self, path: &Path) {
         // 创建临时解压目录
-        let temp_dir_path = path
-            .parent()
-            .expect("no parent path")
-            .join("temp_extracted");
+        let temp_dir_path = match path.parent() {
+            Some(parent) => parent.join("temp_extracted"),
+            None => {
+                eprintln!("no parent path for {}", path.display());
+                return; // 如果没有父目录，直接返回
+            }
+        };
 
         // 调用 bz.exe 进行解压缩
-        let status = Command::new(&self.bz_dir)
+        let status = match Command::new(&self.bz_dir)
             .args(&[
                 "x",
                 &format!("-o:{}", temp_dir_path.to_string_lossy()),
@@ -101,8 +138,13 @@ impl ExtractManager {
                 "-aou",
                 path.to_string_lossy().as_ref(),
             ])
-            .status()
-            .expect("Failed to execute Bandizip");
+            .status() {
+            Ok(status) => status,
+            Err(e) => {
+                eprintln!("Failed to execute Bandizip for {}: {}", path.display(), e);
+                return; // 如果执行失败，直接返回
+            }
+        };
 
         if status.success() {
             println!("Successfully extracted: {}", path.display());
@@ -112,7 +154,9 @@ impl ExtractManager {
         }
 
         // 删除临时解压目录
-        fs::remove_dir_all(&temp_dir_path).expect("failed to delete temp file");
+        if let Err(e) = fs::remove_dir_all(&temp_dir_path) {
+            eprintln!("Failed to delete temp dir {}: {}", temp_dir_path.display(), e);
+        }
     }
 }
 

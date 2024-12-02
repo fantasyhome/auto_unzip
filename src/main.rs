@@ -1,5 +1,6 @@
 mod extract_manager;
 mod ini_reader;
+ use tanzhenhui_code_lib::interaction_helper;
 
 fn main() {
     // test();
@@ -9,6 +10,7 @@ fn main() {
 fn run_code() {
     let extract = extract_manager::ExtractManager::new();
     extract.extract_videos_from_compressed_files();
+    interaction_helper::final_wait();
 }
 
 #[allow(dead_code)]

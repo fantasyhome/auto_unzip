@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 ini = "1.3.0"
 infer = "0.16.0"
-tanzhenhui_code_lib = "0.2.9"
+tanzhenhui_code_lib = "0.6.5"
