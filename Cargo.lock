@@ -37,7 +37,6 @@ name = "auto_unzip"
 version = "0.1.0"
 dependencies = [
  "infer",
- "ini",
  "tanzhenhui_code_lib",
 ]
 
