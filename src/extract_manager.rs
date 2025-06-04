@@ -28,7 +28,7 @@ impl ExtractManager {
             input_dir,
             output_dir,
             password,
-            get_video:false,
+            get_video: false,
         }
     }
 
@@ -46,7 +46,8 @@ impl ExtractManager {
             }
         }
 
-        let input_path = Path::new(&self.input_dir);
+        let input_dir = self.input_dir.clone();
+        let input_path = Path::new(&input_dir);
         self.do_extract(input_path);
     }
 
@@ -80,7 +81,11 @@ impl ExtractManager {
                         // 只读取前 16 个字节判断文件类型
                         let mut buffer = [0u8; 16];
                         if let Err(e) = file.read_exact(&mut buffer) {
-                            eprintln!("Failed to read file header: {}", e);
+                            eprintln!(
+                                "file: {},Failed to read file header: {}",
+                                entry_path.display(),
+                                e
+                            );
                             continue;
                         }
 
@@ -121,7 +126,6 @@ impl ExtractManager {
         }
     }
 
-
     fn extract_selected_file(&mut self, path: &Path) {
         println!("Start to extract: {}", path.display());
         // 创建临时解压目录
@@ -142,7 +146,8 @@ impl ExtractManager {
                 "-aou",
                 path.to_string_lossy().as_ref(),
             ])
-            .status() {
+            .status()
+        {
             Ok(status) => status,
             Err(e) => {
                 eprintln!("Failed to execute Bandizip for {}: {}", path.display(), e);
@@ -160,7 +165,11 @@ impl ExtractManager {
         // 删除临时解压目录
         if self.get_video {
             if let Err(e) = fs::remove_dir_all(&temp_dir_path) {
-                eprintln!("Failed to delete temp dir {}: {}", temp_dir_path.display(), e);
+                eprintln!(
+                    "Failed to delete temp dir {}: {}",
+                    temp_dir_path.display(),
+                    e
+                );
             }
         }
     }

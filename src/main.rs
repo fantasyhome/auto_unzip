@@ -8,7 +8,7 @@ fn main() {
 }
 
 fn run_code() {
-    let extract = extract_manager::ExtractManager::new();
+    let mut extract = extract_manager::ExtractManager::new();
     extract.extract_videos_from_compressed_files();
     interaction_helper::final_wait();
 }
