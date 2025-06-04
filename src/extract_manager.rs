@@ -67,6 +67,7 @@ impl ExtractManager {
                         }
                     };
                     let entry_path = entry.path();
+                    println!("file: {}", entry_path.display());
 
                     // 如果是文件并且可能是压缩文件，尝试判断文件类型
                     if entry_path.is_file() {
@@ -79,14 +80,21 @@ impl ExtractManager {
                         };
 
                         // 只读取前 16 个字节判断文件类型
-                        let mut buffer = [0u8; 16];
-                        if let Err(e) = file.read_exact(&mut buffer) {
-                            eprintln!(
-                                "file: {},Failed to read file header: {}",
-                                entry_path.display(),
-                                e
-                            );
-                            continue;
+                        let mut buffer = vec![0u8; 16];
+                        match file.read(&mut buffer) {
+                            Ok(n) => {
+                                if n < 16 {
+                                    eprintln!(
+                                        "file: {},smaller than expected.",
+                                        entry_path.display()
+                                    );
+                                    continue;
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to read file: {}", e);
+                                continue;
+                            }
                         }
 
                         if infer::is_archive(&buffer) {
