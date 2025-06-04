@@ -12,6 +12,7 @@ pub struct ExtractManager {
     input_dir: String,
     output_dir: String,
     password: String,
+    get_video: bool,
 }
 
 impl ExtractManager {
@@ -27,10 +28,11 @@ impl ExtractManager {
             input_dir,
             output_dir,
             password,
+            get_video:false,
         }
     }
 
-    pub fn extract_videos_from_compressed_files(&self) {
+    pub fn extract_videos_from_compressed_files(&mut self) {
         match fs::remove_dir_all(&self.output_dir) {
             Ok(_) => println!("All files in {} have been deleted.", &self.output_dir),
             Err(_e) => println!("no file in output need to be delete"),
@@ -48,7 +50,7 @@ impl ExtractManager {
         self.do_extract(input_path);
     }
 
-    fn do_extract(&self, walking_directory: &Path) {
+    fn do_extract(&mut self, walking_directory: &Path) {
         file_helper::clean_filename_in_dir(walking_directory);
 
         let mut last_filename = String::new();
@@ -103,6 +105,7 @@ impl ExtractManager {
                                 if let Err(e) = fs::rename(&entry_path, &output_file_path) {
                                     eprintln!("Failed to move video file: {}", e);
                                 } else {
+                                    self.get_video = true;
                                     println!("Video file moved to: {}", output_file_path.display());
                                 }
                             } else {
@@ -119,7 +122,8 @@ impl ExtractManager {
     }
 
 
-    fn extract_selected_file(&self, path: &Path) {
+    fn extract_selected_file(&mut self, path: &Path) {
+        println!("Start to extract: {}", path.display());
         // 创建临时解压目录
         let temp_dir_path = match path.parent() {
             Some(parent) => parent.join("temp_extracted"),
@@ -154,8 +158,10 @@ impl ExtractManager {
         }
 
         // 删除临时解压目录
-        if let Err(e) = fs::remove_dir_all(&temp_dir_path) {
-            eprintln!("Failed to delete temp dir {}: {}", temp_dir_path.display(), e);
+        if self.get_video {
+            if let Err(e) = fs::remove_dir_all(&temp_dir_path) {
+                eprintln!("Failed to delete temp dir {}: {}", temp_dir_path.display(), e);
+            }
         }
     }
 }
